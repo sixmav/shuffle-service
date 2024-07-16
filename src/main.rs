@@ -1,28 +1,28 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use std::{env, io};
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+use actix_cors::Cors;
+use actix_web::dev::Service;
+use actix_web::web;
+use actix_web::{http, App, HttpServer};
+use futures::FutureExt;
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
+#[actix_rt::main]
+async fn main() -> io::Result<()> {
+    dotenv::dotenv().expect("Failed to read .env file");
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
+    let app_host = env::var("APP_HOST").expect("APP_HOST not found!");
+    let app_port = env::var("APP_PORT").expect("APP_PORT not found!");
+    let app_url = format!("{}:{}", &app_host, &app_port);
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL not found!");
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+            .wrap()
+            .app_data()
+            .wrap()
+            .configure()
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(&app_url)?
     .run()
     .await
 }
